@@ -1,0 +1,6 @@
+@PatiantMicroServiceWeb_HostAddress = http://localhost:5161
+
+GET {{PatiantMicroServiceWeb_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
