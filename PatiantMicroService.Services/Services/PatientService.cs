@@ -342,8 +342,7 @@ namespace PatiantMicroService.Services.Services
         #endregion
 
         #region ✏️ Update
-
-        public async Task UpdateAsync(Guid id, UpdatePatientDto dto)
+        public async Task UpdateAsync(UpdatePatientDto dto)
         {
             var patientRepo =
                 _unitOfWork.GetRepository<Patient, Guid>();
@@ -354,47 +353,64 @@ namespace PatiantMicroService.Services.Services
             var medicalRepo =
                 _unitOfWork.GetRepository<MedicalRecord, int>();
 
-            var patient = await patientRepo.GetByIdAsync(id);
+            // ✅ Get logged-in user id from token
+            var identityUserId = GetCurrentUserId();
+
+            // ✅ Get patient by IdentityUserId
+            var patient =
+                await patientRepo.GetByIdAsync(
+                    new PatientByUserIdSpecification(
+                        identityUserId));
 
             if (patient is null)
-                throw new KeyNotFoundException("Patient not found");
-
-            // ✅ Owner Only
-            if (patient.IdentityUserId != GetCurrentUserId())
-                throw new UnauthorizedAccessException();
+                throw new KeyNotFoundException(
+                    "Patient not found");
 
             // =========================
             // Identity Sync
             // =========================
 
-            var oldIdentityData = await _identityClient
-                .GetUserByIdAsync(patient.IdentityUserId);
+            var oldIdentityData =
+                await _identityClient
+                    .GetUserByIdAsync(
+                        patient.IdentityUserId);
 
             if (oldIdentityData.IsFailure)
                 throw new Exception(
-                    oldIdentityData.Errors.First().Description);
+                    oldIdentityData.Errors
+                        .First()
+                        .Description);
 
             var identityResult =
-                await _identityClient.UpdatePatientAsync(
-                    patient.IdentityUserId.ToString(),
-                    new UpdateIdentityUserRequest
-                    {
-                        DisplayName =
-                            dto.FullName ?? patient.FullName,
+                await _identityClient
+                    .UpdatePatientAsync(
+                        patient.IdentityUserId
+                            .ToString(),
+                        new UpdateIdentityUserRequest
+                        {
+                            DisplayName =
+                                dto.FullName ??
+                                patient.FullName,
 
-                        Email =
-                            dto.Email ??
-                            oldIdentityData.Value.Email,
+                            Email =
+                                dto.Email ??
+                                oldIdentityData
+                                    .Value
+                                    .Email,
 
-                        PhoneNumber =
-                            dto.PhoneNumber ??
-                            oldIdentityData.Value.PhoneNumber
-                    },
-                    GetToken());
+                            PhoneNumber =
+                                dto.PhoneNumber ??
+                                oldIdentityData
+                                    .Value
+                                    .PhoneNumber
+                        },
+                        GetToken());
 
             if (identityResult.IsFailure)
                 throw new Exception(
-                    identityResult.Errors.First().Description);
+                    identityResult.Errors
+                        .First()
+                        .Description);
 
             try
             {
@@ -402,11 +418,19 @@ namespace PatiantMicroService.Services.Services
                 // Patient
                 // =========================
 
-                if (!string.IsNullOrWhiteSpace(dto.FullName))
-                    patient.FullName = dto.FullName;
+                if (!string.IsNullOrWhiteSpace(
+                        dto.FullName))
+                {
+                    patient.FullName =
+                        dto.FullName;
+                }
 
-                if (!string.IsNullOrWhiteSpace(dto.Address))
-                    patient.Address = dto.Address;
+                if (!string.IsNullOrWhiteSpace(
+                        dto.Address))
+                {
+                    patient.Address =
+                        dto.Address;
+                }
 
                 patientRepo.Update(patient);
 
@@ -417,40 +441,57 @@ namespace PatiantMicroService.Services.Services
                 if (dto.Allergies is not null)
                 {
                     var currentAllergies =
-                        await allergyRepo.GetAllAsync(
-                            new AllergyByPatientSpec(patient.Id));
+                        await allergyRepo
+                            .GetAllAsync(
+                                new AllergyByPatientSpec(
+                                    patient.Id));
 
-                    foreach (var allergyDto in dto.Allergies)
+                    foreach (var allergyDto
+                             in dto.Allergies)
                     {
-                        // ✅ Update Existing
+                        // Update existing
                         if (allergyDto.Id.HasValue)
                         {
                             var existing =
-                                currentAllergies.FirstOrDefault(
-                                    x => x.Id == allergyDto.Id.Value);
+                                currentAllergies
+                                    .FirstOrDefault(
+                                        x =>
+                                            x.Id ==
+                                            allergyDto
+                                                .Id
+                                                .Value);
 
                             if (existing is not null)
                             {
-                                existing.Name = allergyDto.Name;
-                                existing.Description =
-                                    allergyDto.Description;
+                                existing.Name =
+                                    allergyDto.Name;
 
-                                allergyRepo.Update(existing);
+                                existing.Description =
+                                    allergyDto
+                                        .Description;
+
+                                allergyRepo
+                                    .Update(existing);
                             }
                         }
                         else
                         {
-                            // ✅ Add New
-                            await allergyRepo.AddAsync(
-                                new Allergy
-                                {
-                                    PatientId = patient.Id,
+                            // Add new
+                            await allergyRepo
+                                .AddAsync(
+                                    new Allergy
+                                    {
+                                        PatientId =
+                                            patient.Id,
 
-                                    Name = allergyDto.Name,
+                                        Name =
+                                            allergyDto
+                                                .Name,
 
-                                    Description =
-                                        allergyDto.Description
-                                });
+                                        Description =
+                                            allergyDto
+                                                .Description
+                                    });
                         }
                     }
                 }
@@ -462,68 +503,94 @@ namespace PatiantMicroService.Services.Services
                 if (dto.MedicalRecords is not null)
                 {
                     var currentRecords =
-                        await medicalRepo.GetAllAsync(
-                            new MedicalRecordByPatientSpec(patient.Id));
+                        await medicalRepo
+                            .GetAllAsync(
+                                new MedicalRecordByPatientSpec(
+                                    patient.Id));
 
-                    foreach (var recordDto in dto.MedicalRecords)
+                    foreach (var recordDto
+                             in dto.MedicalRecords)
                     {
-                        // ✅ Update Existing
+                        // Update existing
                         if (recordDto.Id.HasValue)
                         {
                             var existing =
-                                currentRecords.FirstOrDefault(
-                                    x => x.Id == recordDto.Id.Value);
+                                currentRecords
+                                    .FirstOrDefault(
+                                        x =>
+                                            x.Id ==
+                                            recordDto
+                                                .Id
+                                                .Value);
 
                             if (existing is not null)
                             {
                                 existing.Diagnosis =
-                                    recordDto.Diagnosis;
+                                    recordDto
+                                        .Diagnosis;
 
                                 existing.Notes =
-                                    recordDto.Notes;
+                                    recordDto
+                                        .Notes;
 
-                                medicalRepo.Update(existing);
+                                medicalRepo
+                                    .Update(existing);
                             }
                         }
                         else
                         {
-                            // ✅ Add New
-                            await medicalRepo.AddAsync(
-                                new MedicalRecord
-                                {
-                                    PatientId = patient.Id,
+                            // Add new
+                            await medicalRepo
+                                .AddAsync(
+                                    new MedicalRecord
+                                    {
+                                        PatientId =
+                                            patient.Id,
 
-                                    Diagnosis =
-                                        recordDto.Diagnosis,
+                                        Diagnosis =
+                                            recordDto
+                                                .Diagnosis,
 
-                                    Notes =
-                                        recordDto.Notes,
+                                        Notes =
+                                            recordDto
+                                                .Notes,
 
-                                    CreatedAt = DateTime.UtcNow
-                                });
+                                        CreatedAt =
+                                            DateTime
+                                                .UtcNow
+                                    });
                         }
                     }
                 }
 
-                await _unitOfWork.SaveChangesAsync();
+                await _unitOfWork
+                    .SaveChangesAsync();
             }
             catch
             {
                 // 🔥 Rollback Identity
-                await _identityClient.UpdatePatientAsync(
-                    patient.IdentityUserId.ToString(),
-                    new UpdateIdentityUserRequest
-                    {
-                        DisplayName =
-                            oldIdentityData.Value.DisplayName,
+                await _identityClient
+                    .UpdatePatientAsync(
+                        patient.IdentityUserId
+                            .ToString(),
+                        new UpdateIdentityUserRequest
+                        {
+                            DisplayName =
+                                oldIdentityData
+                                    .Value
+                                    .DisplayName,
 
-                        Email =
-                            oldIdentityData.Value.Email,
+                            Email =
+                                oldIdentityData
+                                    .Value
+                                    .Email,
 
-                        PhoneNumber =
-                            oldIdentityData.Value.PhoneNumber
-                    },
-                    GetToken());
+                            PhoneNumber =
+                                oldIdentityData
+                                    .Value
+                                    .PhoneNumber
+                        },
+                        GetToken());
 
                 throw;
             }
@@ -579,6 +646,96 @@ namespace PatiantMicroService.Services.Services
                 throw new Exception(
                     "Patient deleted from Identity but failed in Patient DB");
             }
+        }
+
+        #endregion
+
+        #region ❌ Delete MedicalRecord
+
+        public async Task DeleteMedicalRecordAsync(
+            int medicalRecordId)
+        {
+            var identityUserId =
+                GetCurrentUserId();
+
+            var patientRepo =
+                _unitOfWork.GetRepository<Patient, Guid>();
+
+            var medicalRepo =
+                _unitOfWork.GetRepository<MedicalRecord, int>();
+
+            // ✅ هات المريض الحالي
+            var patient =
+                await patientRepo.GetByIdAsync(
+                    new PatientByUserIdSpecification(
+                        identityUserId));
+
+            if (patient is null)
+                throw new KeyNotFoundException(
+                    "Patient profile not found");
+
+            // ✅ هات الـ medical record
+            var medicalRecord =
+                await medicalRepo.GetByIdAsync(
+                    medicalRecordId);
+
+            if (medicalRecord is null)
+                throw new KeyNotFoundException(
+                    "Medical record not found");
+
+            // ✅ Ownership check
+            if (medicalRecord.PatientId != patient.Id)
+                throw new UnauthorizedAccessException(
+                    "You cannot delete this medical record");
+
+            medicalRepo.Remove(medicalRecord);
+
+            await _unitOfWork.SaveChangesAsync();
+        }
+
+        #endregion
+
+        #region ❌ Delete Allergy
+
+        public async Task DeleteAllergyAsync(
+            int allergyId)
+        {
+            var identityUserId =
+                GetCurrentUserId();
+
+            var patientRepo =
+                _unitOfWork.GetRepository<Patient, Guid>();
+
+            var allergyRepo =
+                _unitOfWork.GetRepository<Allergy, int>();
+
+            // ✅ هات المريض الحالي
+            var patient =
+                await patientRepo.GetByIdAsync(
+                    new PatientByUserIdSpecification(
+                        identityUserId));
+
+            if (patient is null)
+                throw new KeyNotFoundException(
+                    "Patient profile not found");
+
+            // ✅ هات allergy
+            var allergy =
+                await allergyRepo.GetByIdAsync(
+                    allergyId);
+
+            if (allergy is null)
+                throw new KeyNotFoundException(
+                    "Allergy not found");
+
+            // ✅ Ownership check
+            if (allergy.PatientId != patient.Id)
+                throw new UnauthorizedAccessException(
+                    "You cannot delete this allergy");
+
+            allergyRepo.Remove(allergy);
+
+            await _unitOfWork.SaveChangesAsync();
         }
 
         #endregion

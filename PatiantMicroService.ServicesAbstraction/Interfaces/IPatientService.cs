@@ -18,12 +18,16 @@ namespace PatiantMicroService.ServicesAbstraction.Interfaces
 
         Task AddMedicalDataAsync(AddPatientMedicalDataDto dto);
 
-        Task UpdateAsync(Guid id, UpdatePatientDto dto);
+        Task UpdateAsync(UpdatePatientDto dto);
 
         Task DeleteAsync(Guid id);
 
         Task<PaginationResponse<PatientDto>> GetAllAsync(PatientQueryParams param);
 
         Task<ReturnedPatientDetailsDto> GetPatientDetailsByIdentityUserIdAsync(Guid identityUserId);
+
+        Task DeleteMedicalRecordAsync(int medicalRecordId);
+
+        Task DeleteAllergyAsync(int allergyId);
     }
 }

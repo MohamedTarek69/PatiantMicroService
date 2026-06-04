@@ -67,17 +67,16 @@ namespace PatiantMicroService.Presentation.Controllers
 
         #region ✏️ Update
 
-        // ✅ Patient أو Admin
-        [Authorize(Roles = "AdminOrPatiant")]
-        [HttpPut("Update/{id:guid}")]
+        // ✅ Patient
+        [Authorize(Roles = "Patient")]
+        [HttpPut("Update")]
         public async Task<IActionResult> Update(
-            Guid id,
             [FromBody] UpdatePatientDto dto)
         {
             if (!ModelState.IsValid)
                 return HandleModelStateErrors(ModelState);
 
-            await _patientService.UpdateAsync(id, dto);
+            await _patientService.UpdateAsync(dto);
 
             return NoContent();
         }
@@ -94,6 +93,48 @@ namespace PatiantMicroService.Presentation.Controllers
             await _patientService.DeleteAsync(id);
 
             return NoContent();
+        }
+
+        #endregion
+
+        #region ❌ Delete MedicalRecord
+
+        // ✅ Patient فقط
+        [Authorize(Roles = "Patient")]
+        [HttpDelete("MedicalRecord/{medicalRecordId:int}")]
+        public async Task<IActionResult>
+            DeleteMedicalRecord(int medicalRecordId)
+        {
+            await _patientService
+                .DeleteMedicalRecordAsync(
+                    medicalRecordId);
+
+            return Ok(new
+            {
+                Message =
+                    "Medical record deleted successfully"
+            });
+        }
+
+        #endregion
+
+        #region ❌ Delete Allergy
+
+        // ✅ Patient فقط
+        [Authorize(Roles = "Patient")]
+        [HttpDelete("Allergy/{allergyId:int}")]
+        public async Task<IActionResult>
+            DeleteAllergy(int allergyId)
+        {
+            await _patientService
+                .DeleteAllergyAsync(
+                    allergyId);
+
+            return Ok(new
+            {
+                Message =
+                    "Allergy deleted successfully"
+            });
         }
 
         #endregion
@@ -136,7 +177,8 @@ namespace PatiantMicroService.Presentation.Controllers
 
         #region 🔥 Get Patient Details By IdentityUserId
         // ✅ Doctor, Admin
-        [Authorize(Roles = "AdminOrDoctor")]
+        //[Authorize(Policy = "AdminOrDoctor")]
+        [AllowAnonymous]
         [HttpGet("DetailsByIdentityUserId/{identityUserId:guid}")]
         public async Task<ActionResult<ReturnedPatientDetailsDto>> GetPatientDetailsByIdentityUserId(Guid identityUserId)
         {

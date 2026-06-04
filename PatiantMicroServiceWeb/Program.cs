@@ -118,7 +118,7 @@ namespace PatiantMicroServiceWeb
             {
                 options.AddPolicy("AdminOnly", p => p.RequireRole("Admin"));
                 options.AddPolicy("DoctorOnly", p => p.RequireRole("Doctor"));
-                options.AddPolicy("PatiantOnly", p => p.RequireRole("Patiant"));
+                options.AddPolicy("PatientOnly", p => p.RequireRole("Patient"));
                 options.AddPolicy("AdminOrDoctor", p => p.RequireRole("Admin", "Doctor"));
                 options.AddPolicy("AdminOrPatiant", p => p.RequireRole("Admin", "Patiant"));
             });
