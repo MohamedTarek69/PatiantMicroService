@@ -177,7 +177,7 @@ namespace PatiantMicroService.Presentation.Controllers
 
         #region 🔥 Get Patient Details By IdentityUserId
         // ✅ Doctor, Admin
-        //[Authorize(Policy = "AdminOrDoctor")]
+        [Authorize(Roles = "Admin,Doctor,Patient")]
         [AllowAnonymous]
         [HttpGet("DetailsByIdentityUserId/{identityUserId:guid}")]
         public async Task<ActionResult<ReturnedPatientDetailsDto>> GetPatientDetailsByIdentityUserId(Guid identityUserId)
